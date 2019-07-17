@@ -103,3 +103,23 @@
 
         return $app->redirect('/todo');
     });
+
+    /**
+     * Backend API Response
+     * {"id":"1","user_id":"1","description":"Vivamus tempus","complete":null}
+     */
+    $app->get('/todo/{id}/json', function ($id) use ($app) {
+        if (null === $user = $app['session']->get('user')) {
+            return $app->redirect('/login');
+        }
+
+        if ($id) {
+            $sql  = "SELECT * FROM todos WHERE id = '$id'";
+            $todo = $app['db']->fetchAssoc($sql);
+
+            $response = new Response();
+            $response->setContent(json_encode($todo));
+            $response->headers->set('Content-Type', 'application/json');
+            return $response;
+        }
+    })->value('id', null);
