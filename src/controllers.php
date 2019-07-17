@@ -48,10 +48,13 @@
     /**
      * Display todo by ID
      */
-    $app->get('/todo/{id}', function ($id) use ($app) {
+    $app->get('/todo/{id}', function (Request $request) use ($app) {
         if (null === $user = $app['session']->get('user')) {
             return $app->redirect('/login');
         }
+
+        $routeParam = $request->attributes->get('_route_params');
+        $id         = $routeParam['id'];
 
         if ($id) {
             $sql  = "SELECT * FROM todos WHERE id = '$id'";
@@ -61,6 +64,36 @@
         } else {
             $sql   = "SELECT * FROM todos WHERE user_id = '${user['id']}'";
             $todos = $app['db']->fetchAll($sql);
+
+            $page = $request->query->get('page');
+
+            if ($todos && count($todos)) {
+                $itemsPerPage = 5;
+                $totalTodos   = count($todos);
+                $pages        = $totalTodos > $itemsPerPage ? ceil($totalTodos / $itemsPerPage) : 1;
+                $numberPages  = $pages > 1 ? range(1, $pages) : [1];
+
+                $counter     = 0;
+                $todosByPage = array();
+                $pageSingle  = array();
+                foreach ($todos as $todo) {
+                    if ($counter < $itemsPerPage) {
+                        $counter++;
+                        array_push($pageSingle, $todo);
+                    } else {
+                        array_push($todosByPage, $pageSingle);
+                        $counter    = 0;
+                        $pageSingle = array();
+                    }
+                }
+                if (count($pageSingle)) {
+                    array_push($todosByPage, $pageSingle);
+                }
+                return $app['twig']->render('todos.html', array(
+                        'todos' => $todosByPage[$page ? $page - 1 : 0],
+                        'numberPages' => $numberPages)
+                );
+            }
 
             return $app['twig']->render('todos.html', array('todos' => $todos));
         }
@@ -78,7 +111,7 @@
         $user_id       = $user['id'];
         $user_username = $user['username'];
         $description   = $request->get('description');
-        $session = new Session();
+        $session       = new Session();
 
         if ($description) {
             $sql = "INSERT INTO todos (user_id, description) VALUES ('$user_id', '$description')";

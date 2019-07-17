@@ -40,5 +40,10 @@
             </form>
         </tr>
     </table>
+    <ul class="pagination">
+        {% for i in numberPages %}
+        <li><a href="/todo?page={{ i }}">{{ i }}</a></li>
+        {% endfor %}
+    </ul>
 </div>
 {% endblock %}
