@@ -2,6 +2,7 @@
 
     use Symfony\Component\HttpFoundation\Request;
     use Symfony\Component\HttpFoundation\Response;
+    use Symfony\Component\HttpFoundation\Session\Session;
 
     $app['twig'] = $app->share($app->extend('twig', function ($twig, $app) {
         $twig->addGlobal('user', $app['session']->get('user'));
@@ -74,12 +75,19 @@
             return $app->redirect('/login');
         }
 
-        $user_id     = $user['id'];
-        $description = $request->get('description');
+        $user_id       = $user['id'];
+        $user_username = $user['username'];
+        $description   = $request->get('description');
+        $session = new Session();
 
         if ($description) {
             $sql = "INSERT INTO todos (user_id, description) VALUES ('$user_id', '$description')";
-            $app['db']->executeUpdate($sql);
+            if ($app['db']->executeUpdate($sql)) {
+                $session->getFlashBag()->add('success', $user_username . 'added "' . $description . '"');
+            }
+        } else {
+            $session = new Session();
+            $session->getFlashBag()->add('danger', 'Description is required to add Todo.');
         }
         return $app->redirect('/todo');
     });
@@ -89,7 +97,11 @@
      */
     $app->match('/todo/delete/{id}', function ($id) use ($app) {
         $sql = "DELETE FROM todos WHERE id = '$id'";
-        $app['db']->executeUpdate($sql);
+
+        if ($app['db']->executeUpdate($sql)) {
+            $session = new Session();
+            $session->getFlashBag()->add('success', 'Todo No. ' . $id . ' is deleted');
+        }
 
         return $app->redirect('/todo');
     });
