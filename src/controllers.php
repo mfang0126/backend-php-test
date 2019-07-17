@@ -9,14 +9,16 @@
         return $twig;
     }));
 
-
+    /**
+     * Homepage
+     */
     $app->get('/', function () use ($app) {
-        return $app['twig']->render('index.html', [
-            'readme' => file_get_contents('README.md'),
-        ]);
+        return $app['twig']->render('index.html', array('readme' => file_get_contents('README.md')));
     });
 
-
+    /**
+     * Login
+     */
     $app->match('/login', function (Request $request) use ($app) {
         $username = $request->get('username');
         $password = $request->get('password');
@@ -34,13 +36,17 @@
         return $app['twig']->render('login.html', array());
     });
 
-
+    /**
+     * Logout
+     */
     $app->get('/logout', function () use ($app) {
         $app['session']->set('user', null);
         return $app->redirect('/');
     });
 
-
+    /**
+     * Display todo by ID
+     */
     $app->get('/todo/{id}', function ($id) use ($app) {
         if (null === $user = $app['session']->get('user')) {
             return $app->redirect('/login');
@@ -50,21 +56,19 @@
             $sql  = "SELECT * FROM todos WHERE id = '$id'";
             $todo = $app['db']->fetchAssoc($sql);
 
-            return $app['twig']->render('todo.html', [
-                'todo' => $todo,
-            ]);
+            return $app['twig']->render('todo.html', array('todo' => $todo));
         } else {
             $sql   = "SELECT * FROM todos WHERE user_id = '${user['id']}'";
             $todos = $app['db']->fetchAll($sql);
 
-            return $app['twig']->render('todos.html', [
-                'todos' => $todos,
-            ]);
+            return $app['twig']->render('todos.html', array('todos' => $todos));
         }
     })
         ->value('id', null);
 
-
+    /**
+     * Add todo with description as required.
+     */
     $app->post('/todo/add', function (Request $request) use ($app) {
         if (null === $user = $app['session']->get('user')) {
             return $app->redirect('/login');
@@ -80,10 +84,21 @@
         return $app->redirect('/todo');
     });
 
-
+    /**
+     * Delete todo by id
+     */
     $app->match('/todo/delete/{id}', function ($id) use ($app) {
-
         $sql = "DELETE FROM todos WHERE id = '$id'";
+        $app['db']->executeUpdate($sql);
+
+        return $app->redirect('/todo');
+    });
+
+    /**
+     * Check the complete box by id.
+     */
+    $app->match('/todo/complete/{id}', function ($id) use ($app) {
+        $sql = "UPDATE todos SET complete = NOT complete WHERE id = '$id'";
         $app['db']->executeUpdate($sql);
 
         return $app->redirect('/todo');

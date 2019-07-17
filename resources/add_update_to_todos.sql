@@ -1,0 +1,1 @@
+ALTER TABLE todos ADD complete boolean NOT NULL DEFAULT false;
