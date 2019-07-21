@@ -1,29 +1,14 @@
-# todo-list
+# Php-test-frontend
 
-## Project setup
-```
-npm install
-```
+## Project Description
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+This application is the frontend focus, is for Task 6.
+Due to the time, I don't have time to implement the JWT and login.
 
-### Compiles and minifies for production
-```
-npm run build
-```
+It is able to run alongside with the backend api.
 
-### Run your tests
+### Production version file location 
 ```
-npm run test
+frontend/dist/index.html
 ```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+ 
