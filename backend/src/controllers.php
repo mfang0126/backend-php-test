@@ -4,6 +4,17 @@
     use Symfony\Component\HttpFoundation\Response;
     use Symfony\Component\HttpFoundation\Session\Session;
 
+    $app->before(function (Request $request){
+        $method = $request->getMethod();
+
+        if (in_array($method, array(Request::METHOD_POST, Request::METHOD_PUT, Request::METHOD_PATCH))) {
+            if (0 === strpos($request->headers->get('Content-Type'), 'application/json')) {
+                $data = json_decode($request->getContent(), true);
+                $request->request->replace(is_array($data) ? $data : array());
+            }
+        }
+    });
+
     $app['twig'] = $app->share($app->extend('twig', function ($twig, $app) {
         $twig->addGlobal('user', $app['session']->get('user'));
 
