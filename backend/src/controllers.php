@@ -4,6 +4,17 @@
     use Symfony\Component\HttpFoundation\Response;
     use Symfony\Component\HttpFoundation\Session\Session;
 
+    $app->before(function (Request $request) {
+        $method = $request->getMethod();
+
+        if (in_array($method, array(Request::METHOD_POST, Request::METHOD_PUT, Request::METHOD_PATCH))) {
+            if (0 === strpos($request->headers->get('Content-Type'), 'application/json')) {
+                $data = json_decode($request->getContent(), true);
+                $request->request->replace(is_array($data) ? $data : array());
+            }
+        }
+    });
+
     $app['twig'] = $app->share($app->extend('twig', function ($twig, $app) {
         $twig->addGlobal('user', $app['session']->get('user'));
 
@@ -57,7 +68,7 @@
         $id         = $routeParam['id'];
 
         if ($id) {
-            $sql  = "SELECT * FROM todos WHERE id = '$id'";
+            $sql   = "SELECT * FROM todos WHERE user_id = '${user['id']}'";
             $todo = $app['db']->fetchAssoc($sql);
 
             return $app['twig']->render('todo.html', array('todo' => $todo));
@@ -71,7 +82,7 @@
                 $itemsPerPage = 5;
                 $totalTodos   = count($todos);
                 $pages        = $totalTodos > $itemsPerPage ? ceil($totalTodos / $itemsPerPage) : 1;
-                $numberPages  = $pages > 1 ? range(1, $pages) : [1];
+                $numberPages  = $pages > 1 ? range(1, $pages) : array(1);
 
                 $counter     = 0;
                 $todosByPage = array();
@@ -154,12 +165,15 @@
      * {"id":"1","user_id":"1","description":"Vivamus tempus","complete":null}
      */
     $app->get('/todo/{id}/json', function ($id) use ($app) {
-        if (null === $user = $app['session']->get('user')) {
+        $user = $app['session']->get('user');
+        if (null === $user) {
             return $app->redirect('/login');
         }
 
+        $user_id = $user['id'];
+
         if ($id) {
-            $sql  = "SELECT * FROM todos WHERE id = '$id'";
+            $sql  = "SELECT * FROM todos WHERE id = '$id' && user_id = '$user_id'";
             $todo = $app['db']->fetchAssoc($sql);
 
             $response = new Response();
@@ -167,4 +181,81 @@
             $response->headers->set('Content-Type', 'application/json');
             return $response;
         }
+        return $app->redirect('/todo');
     })->value('id', null);
+
+
+    /**
+     * API for all tasks.
+     *
+     * Should be using Model and JWT.
+     */
+    $app->get('/api/todo', function () use ($app) {
+        $sql  = "SELECT * FROM todos";
+        $todo = $app['db']->fetchAll($sql);
+
+        $response = new Response();
+        $response->setContent(json_encode($todo));
+        $response->headers->set('Content-Type', 'application/json');
+        return $response;
+    })->value('id', null);
+
+    /**
+     * API for adding tasks
+     *
+     * Should be using Model and JWT.
+     */
+    $app->post('/api/todo/add', function (Request $request) use ($app) {
+
+        $user_id     = $request->request->get('id');
+        $description = $request->request->get('description');
+
+        $sql_insert = "INSERT INTO todos (user_id, description) VALUES ('$user_id', '$description')";
+
+        if ($app['db']->executeUpdate($sql_insert)) {
+            $todo_id    = $app['db']->lastInsertId();
+            $sql_select = "SELECT * FROM todos WHERE id = '$todo_id' && user_id = '$user_id'";
+            $todo       = $app['db']->fetchAssoc($sql_select);
+
+            if ($todo) {
+                return $app->json(array(
+                    "success" => true,
+                    "data" => $todo,
+                    "message" => "Todo is added successfully."
+                ), 201);
+            }
+        }
+
+        return $app->json(array(
+            "success" => true,
+            "data" => array(),
+            "message" => "Todo is failed."
+        ), 400);
+    });
+
+    /**
+     * Check the complete box by id.
+     */
+    $app->post('/api/todo/complete', function (Request $request) use ($app) {
+
+        $todo_id = $request->request->get('id');
+        $user_id = $request->request->get('userId');
+
+        $sql_update = "UPDATE todos SET complete = NOT complete WHERE id = '$todo_id' and user_id = '$user_id'";
+        if ($app['db']->executeUpdate($sql_update)) {
+            $sql_select = "SELECT * FROM todos WHERE id = '$todo_id' && user_id='$user_id'";
+            $todo       = $app['db']->fetchAssoc($sql_select);
+
+            if ($todo) {
+                return $app->json(array(
+                    "success" => true,
+                    "data" => $todo,
+                    "message" => "Todo complete status changed."
+                ), 200);
+            }
+        }
+
+
+        return $app->redirect('/todo');
+    });
+

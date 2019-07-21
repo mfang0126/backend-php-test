@@ -1,4 +1,6 @@
-/vendor/
-composer.lock
-config/config.yml
+backend/vendor/
+backend/composer.lock
+backend/config/config.yml
 .idea
+
+frontend/node_modules
