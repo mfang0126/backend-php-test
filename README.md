@@ -11,4 +11,22 @@ It is able to run alongside with the backend api.
 ```
 frontend/dist/index.html
 ```
- 
+
+
+### PHP Instruction
+Go to backend folder
+```
+php -S localhost:1337 -t web/ web/index.php
+```
+
+### Vue
+
+Go to frontend folder 
+```
+npm run serve
+```
+
+You also can run commands below or using apache for both.
+
+
+## Thanks for reviewing.
