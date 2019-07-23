@@ -1,6 +1,5 @@
-backend/vendor/
-backend/composer.lock
-backend/config/config.yml
-.idea
+vendor/
+composer.lock
+config/config.yml
 
 frontend/node_modules

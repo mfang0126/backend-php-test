@@ -57,6 +57,13 @@
     });
 
     /**
+     * Vue Version 
+     */
+    $app->get('/vue', function () use ($app) {
+        return $app['twig']->render('vue.html');
+    });
+
+    /**
      * Display todo by ID
      */
     $app->get('/todo/{id}', function (Request $request) use ($app) {
@@ -191,7 +198,17 @@
      * Should be using Model and JWT.
      */
     $app->get('/api/todo', function () use ($app) {
-        $sql  = "SELECT * FROM todos";
+        $user = $app['session']->get('user');
+        if (null === $user) {
+            return $app->json(array(
+                "success" => false,
+                "data" => [],
+                "message" => "Please login"
+            ), 400);
+        }
+
+        $user_id = $user['id'];
+        $sql  = "SELECT * FROM todos WHERE user_id = '$user_id'";
         $todo = $app['db']->fetchAll($sql);
 
         $response = new Response();
@@ -206,6 +223,14 @@
      * Should be using Model and JWT.
      */
     $app->post('/api/todo/add', function (Request $request) use ($app) {
+        $user = $app['session']->get('user');
+        if (null === $user) {
+            return $app->json(array(
+                "success" => false,
+                "data" => [],
+                "message" => "Please login"
+            ), 400);
+        }
 
         $user_id     = $request->request->get('id');
         $description = $request->request->get('description');
@@ -223,6 +248,12 @@
                     "data" => $todo,
                     "message" => "Todo is added successfully."
                 ), 201);
+            } else {
+                return $app->json(array(
+                        "success" => false,
+                        "data" => [],
+                        "message" => "Cannot get data properly from database."
+                    ), 400);
             }
         }
 
@@ -237,6 +268,14 @@
      * Check the complete box by id.
      */
     $app->post('/api/todo/complete', function (Request $request) use ($app) {
+        $user = $app['session']->get('user');
+        if (null === $user) {
+            return $app->json(array(
+                "success" => false,
+                "data" => [],
+                "message" => "Please login"
+            ), 400);
+        }
 
         $todo_id = $request->request->get('id');
         $user_id = $request->request->get('userId');
@@ -253,9 +292,12 @@
                     "message" => "Todo complete status changed."
                 ), 200);
             }
+        } else {
+            return $app->json(array(
+                    "success" => false,
+                    "data" => [],
+                    "message" => "Cannot get data properly from database."
+                ), 400);
         }
-
-
-        return $app->redirect('/todo');
     });
 
